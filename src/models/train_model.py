@@ -6,6 +6,7 @@ from LearningAlgorithms import ClassificationAlgorithms
 import seaborn as sns
 import itertools
 from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.preprocessing import LabelEncoder
 
 
 # Plot settings
@@ -81,6 +82,7 @@ feature_set_4 = list(set(feature_set_3 + frequency_features + cluster_features))
 
 learner = ClassificationAlgorithms()
 
+# This takes a long time to run
 max_features = 10
 selected_features, ordered_features, ordered_scores = learner.forward_selection(
     max_features, X_train, y_train
@@ -130,6 +132,7 @@ iterations = 1
 score_df = pd.DataFrame()
 
 for i, f in zip(range(len(possible_feature_sets)), feature_names):
+
     print("Feature set:", str(i + 1))
     selected_train_X = X_train[possible_feature_sets[i]]
     selected_test_X = X_test[possible_feature_sets[i]]
@@ -200,8 +203,24 @@ for i, f in zip(range(len(possible_feature_sets)), feature_names):
 
     performance_test_nb = accuracy_score(y_test, class_test_y)
 
+    print("\tTraining XGBoost")
+    # First encode the labels in the train_y table
+    le = LabelEncoder()
+    y_encoded = le.fit_transform(y_train)
+    (
+        class_train_y,
+        class_test_y,
+        class_train_prob_y,
+        class_test_prob_y,
+    ) = learner.xgboost_classifier(
+        selected_train_X, y_encoded, selected_test_X
+    )  # add gridsearch later
+
+    class_test_y = le.inverse_transform(class_test_y)
+    performance_test_xgb = accuracy_score(y_test, class_test_y)
+
     # Save results to dataframe
-    models = ["NN", "RF", "KNN", "DT", "NB"]
+    models = ["NN", "RF", "KNN", "DT", "NB", "XGB"]
     new_scores = pd.DataFrame(
         {
             "model": models,
@@ -212,6 +231,7 @@ for i, f in zip(range(len(possible_feature_sets)), feature_names):
                 performance_test_knn,
                 performance_test_dt,
                 performance_test_nb,
+                performance_test_xgb,
             ],
         }
     )
@@ -235,6 +255,8 @@ plt.show()
 # Plot shows that the decision tree model performs best with the selected features
 # Test the DT model using the test set with the selected features to see how well
 # it generalizes to unfamiliar data
+
+### Update - XGBoost model performed very well with selected features
 
 # --------------------------------------------------------------
 # Select best model and evaluate results
@@ -501,4 +523,49 @@ plt.show()
 ### ------------------------------------------------------------------- ###
 ### CONCLUSION: NN  model with selected features performed about the same as
 ### with the feature set 4. It still has some error with OHP vs. bench pred
+### Next, try XGBoost with selected features to see if it performs even better.
 ### ------------------------------------------------------------------- ###
+
+le = LabelEncoder()
+y_encoded = le.fit_transform(y_train)
+
+(
+    class_train_y,
+    class_test_y,
+    class_train_prob_y,
+    class_test_prob_y,
+) = learner.xgboost_classifier(
+    X_train[selected_features], y_encoded, X_test[selected_features]
+)
+
+class_test_y = le.inverse_transform(class_test_y)
+accuracy = accuracy_score(y_test, class_test_y)
+
+classes = le.inverse_transform(class_test_prob_y.columns)
+cm = confusion_matrix(y_test, class_test_y, labels=classes)
+
+# create confusion matrix for cm
+fig = plt.figure(figsize=(10, 10))
+plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+plt.title("Confusion matrix")
+plt.colorbar()
+tick_marks = np.arange(len(classes))
+plt.xticks(tick_marks, classes, rotation=45)
+plt.yticks(tick_marks, classes)
+
+thresh = cm.max() / 2.0
+for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+    plt.text(
+        j,
+        i,
+        format(cm[i, j]),
+        horizontalalignment="center",
+        color="white" if cm[i, j] > thresh else "black",
+    )
+plt.ylabel("True label")
+plt.xlabel("Predicted label")
+plt.grid(False)
+plt.savefig(
+    f"../../reports/figures/confusion-matrix_XGB-model_validation_selected-features.png"
+)
+plt.show()

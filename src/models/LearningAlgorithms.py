@@ -22,6 +22,7 @@ from sklearn.metrics import accuracy_score
 import pandas as pd
 import numpy as np
 import copy
+from xgboost import XGBClassifier
 
 
 class ClassificationAlgorithms:
@@ -472,3 +473,23 @@ class ClassificationAlgorithms:
             frame_prob_training_y,
             frame_prob_test_y,
         )
+
+    # Apply an XGBoost approach for classification upon the training data and use the created model to predict
+    # the outcome for both the test and training set.
+    def xgboost_classifier(self, train_X, train_y, test_X):  # start without grid search
+
+        # Create the model
+        xgb = XGBClassifier()
+
+        # Fit the model
+        xgb.fit(train_X, train_y)
+
+        # Apply the model
+        pred_prob_training_y = xgb.predict_proba(train_X)
+        pred_prob_test_y = xgb.predict_proba(test_X)
+        pred_training_y = xgb.predict(train_X)
+        pred_test_y = xgb.predict(test_X)
+        frame_prob_training_y = pd.DataFrame(pred_prob_training_y, columns=xgb.classes_)
+        frame_prob_test_y = pd.DataFrame(pred_prob_test_y, columns=xgb.classes_)
+
+        return pred_training_y, pred_test_y, frame_prob_training_y, frame_prob_test_y
