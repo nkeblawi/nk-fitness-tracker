@@ -6,6 +6,7 @@ BASED ON THE QUANTIFIED SELF BOOK
 Mark Hoogendoorn and Burkhardt Funk (2017)              
 Machine Learning for the Quantified Self                
 Book can be found here: <a target="_blank" href="https://link.springer.com/book/10.1007/978-3-319-66308-1">Springer</a>                                                
+Original source code: <a target="_blank" href="https://github.com/mhoogen/ML4QS/">https://github.com/mhoogen/ML4QS/</a>
 ----------------------------------------------------------                                             
 
 Built and evaluated supervised ML models that uses fitness data to predict multiple classification targets.
