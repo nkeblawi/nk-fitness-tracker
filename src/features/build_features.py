@@ -1,24 +1,20 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
 from DataTransformation import LowPassFilter, PrincipalComponentAnalysis
 from TemporalAbstraction import NumericalAbstraction
 from FrequencyAbstraction import FourierTransformation
-from sklearn.cluster import KMeans
 
 # --------------------------------------------------------------
 # Load data
 # --------------------------------------------------------------
 
+# Load the data with outliers removed
 df = pd.read_pickle("../../data/interim/02_data_outliers_removed_chauvenets.pkl")
 
+# Assign the predictor columns (sensor data)
 predictor_columns = df.columns[:6]
 
-# Plot settings
-plt.style.use("fivethirtyeight")
-plt.rcParams["figure.figsize"] = (20, 5)
-plt.rcParams["figure.dpi"] = 100
-plt.rcParams["lines.linewidth"] = 2
 
 # --------------------------------------------------------------
 # Dealing with missing values (imputation)
@@ -28,7 +24,6 @@ plt.rcParams["lines.linewidth"] = 2
 for col in predictor_columns:
     df[col] = df[col].interpolate()
 
-df.info()
 
 # --------------------------------------------------------------
 # Calculating set duration
@@ -42,7 +37,6 @@ for s in df["set"].unique():
     df.loc[(df["set"] == s), "set_duration"] = set_duration.seconds
 
 duration_df = df.groupby(["category"])["set_duration"].mean()
-
 duration_df.iloc[0] / 5
 duration_df.iloc[1] / 10
 
@@ -64,25 +58,6 @@ cutoff = 1.3  # test this value and adjust as needed
 
 # Apply the low pass filter to the acc_y column
 df_lowpass = LowPass.low_pass_filter(df_lowpass, "acc_y", fs, cutoff, order=5)
-
-# Compare the new column vs the original to check the effect of
-# the low pass filter in the following visualization
-subset = df_lowpass[df_lowpass["set"] == 45]
-print(subset["label"][0])
-
-fig, ax = plt.subplots(nrows=2, sharex=True, figsize=(20, 10))
-ax[0].plot(subset["acc_y"].reset_index(drop=True), label="raw data")
-ax[1].plot(subset["acc_y_lowpass"].reset_index(drop=True), label="butterworth filter")
-ax[0].legend(loc="upper center", bbox_to_anchor=(0.5, 1.15), fancybox=True, shadow=True)
-ax[1].legend(loc="upper center", bbox_to_anchor=(0.5, 1.15), fancybox=True, shadow=True)
-
-# Once the cutoff value is selected, apply the filter to all columns
-for col in predictor_columns:
-    df_lowpass = LowPass.low_pass_filter(df_lowpass, col, fs, cutoff, order=5)
-
-    # Overwrite the original column with the low pass filtered column
-    df_lowpass[col] = df_lowpass[col + "_lowpass"]
-    del df_lowpass[col + "_lowpass"]
 
 
 # --------------------------------------------------------------
