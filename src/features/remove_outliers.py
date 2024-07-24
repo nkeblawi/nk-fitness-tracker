@@ -5,34 +5,13 @@ import math
 import scipy
 from sklearn.neighbors import LocalOutlierFactor  # pip install scikit-learn
 
-# --------------------------------------------------------------
-# Load data for further exploratory analysis to find outliers
-# --------------------------------------------------------------
-
-df = pd.read_pickle("../../data/interim/01_data_processed.pkl")
-
-# Select the numerical columns to study for outliers and turn it into a list so we can loop over it
-outlier_columns = list(df.columns[:6])
+# Source: https://github.com/mhoogen/ML4QS/blob/master/Python3Code/util/VisualizeDataset.py
 
 # --------------------------------------------------------------
 # Plotting outliers
 # --------------------------------------------------------------
 
-plt.style.use("fivethirtyeight")
-plt.rcParams["figure.figsize"] = (20, 5)
-plt.rcParams["figure.dpi"] = 100
 
-df[outlier_columns[:3] + ["label"]].boxplot(by="label", figsize=(20, 10), layout=(1, 3))
-df[outlier_columns[3:] + ["label"]].boxplot(by="label", figsize=(20, 10), layout=(1, 3))
-
-""" ANALYSIS NOTES
-    There are a lot of outliers in each set, but we can't just remove them all... 
-    We need to visualize them in other ways to see if we can find a pattern and 
-    make an informed choice using the outlier detection functions below.
-"""
-
-
-# Taken from: https://github.com/mhoogen/ML4QS/blob/master/Python3Code/util/VisualizeDataset.py
 def plot_binary_outliers(dataset, col, outlier_col, reset_index):
     """Plot outliers in case of a binary outlier score. Here, the col specifies the real data
     column and outlier_col the columns with a binary value (outlier or not).
@@ -80,11 +59,9 @@ def plot_binary_outliers(dataset, col, outlier_col, reset_index):
 
 # --------------------------------------------------------------
 # Interquartile range (distribution based)
-# Still shows too many outliers, some of which could be legit data points
 # --------------------------------------------------------------
 
 
-# Insert IQR function
 def mark_outliers_iqr(dataset, col):
     """Function to mark values as outliers using the IQR method.
 
@@ -113,33 +90,13 @@ def mark_outliers_iqr(dataset, col):
     return dataset
 
 
-# Plot a single column
-col = "acc_x"
-dataset = mark_outliers_iqr(df, col)
-plot_binary_outliers(
-    dataset=dataset, col=col, outlier_col=col + "_outlier", reset_index=True
-)
-
-# Loop over all columns
-for col in outlier_columns:
-    dataset = mark_outliers_iqr(df, col)
-    plot_binary_outliers(
-        dataset=dataset, col=col, outlier_col=col + "_outlier", reset_index=True
-    )
-
-
 # --------------------------------------------------------------
-# Chauvenets criteron (distribution based)
+# Chauvenets criteron (assumes normal distribution)
 # Source: Source — Hoogendoorn, M., & Funk, B. (2018). Machine learning for the quantified self. On the art of learning from sensory data.
-# Shows less outliers, which likely means they are true outliers
+# Source: https://github.com/mhoogen/ML4QS/blob/master/Python3Code/Chapter3/OutlierDetection.py
 # --------------------------------------------------------------
 
-# Check for normal distribution
-df[outlier_columns[3:] + ["label"]].hist(by="label", figsize=(20, 20), layout=(3, 3))
-df[outlier_columns[:3] + ["label"]].hist(by="label", figsize=(20, 20), layout=(3, 3))
 
-
-# Insert Chauvenet's function from: https://github.com/mhoogen/ML4QS/blob/master/Python3Code/Chapter3/OutlierDetection.py
 def mark_outliers_chauvenet(dataset, col, C=2):
     """Finds outliers in the specified column of datatable and adds a binary column with
     the same name extended with '_outlier' that expresses the result per data point.
@@ -187,21 +144,11 @@ def mark_outliers_chauvenet(dataset, col, C=2):
     return dataset
 
 
-# Loop over all columns
-for col in outlier_columns:
-    dataset = mark_outliers_chauvenet(df, col)
-    plot_binary_outliers(
-        dataset=dataset, col=col, outlier_col=col + "_outlier", reset_index=True
-    )
-
 # --------------------------------------------------------------
 # Local outlier factor (distance based)
-# Found outliers that seem within normal ranges but are identified
-# as isolated data points due to distance from other clusters
 # --------------------------------------------------------------
 
 
-# Insert LOF function
 def mark_outliers_lof(dataset, columns, n=20):
     """Mark values as outliers using LOF
 
@@ -227,73 +174,27 @@ def mark_outliers_lof(dataset, columns, n=20):
     return dataset, outliers, X_scores
 
 
-# Loop over all columns
-dataset, outliers, X_scores = mark_outliers_lof(df, outlier_columns)
-for col in outlier_columns:
-    plot_binary_outliers(
-        dataset=dataset, col=col, outlier_col="outlier_lof", reset_index=True
-    )
-
-
-# --------------------------------------------------------------
-# Check outliers grouped by label
-# --------------------------------------------------------------
-
-label = "dead"  # change this to visually inspect outliers for other labels
-
-# IQR method
-for col in outlier_columns:
-    dataset = mark_outliers_iqr(df[df["label"] == label], col)
-    plot_binary_outliers(dataset, col, col + "_outlier", reset_index=True)
-
-# Chauvenet method
-for col in outlier_columns:
-    dataset = mark_outliers_chauvenet(df[df["label"] == label], col)
-    plot_binary_outliers(dataset, col, col + "_outlier", reset_index=True)
-
-# LOF method
-dataset, outliers, X_scores = mark_outliers_lof(
-    df[df["label"] == label], outlier_columns
-)
-for col in outlier_columns:
-    plot_binary_outliers(dataset, col, "outlier_lof", reset_index=True)
-
-
 # --------------------------------------------------------------
 # Choose method and deal with outliers
 # Do we remove them? Or impute them?
 # --------------------------------------------------------------
 
-# Test on single column: set outliers to NaN and later remove or impute them
-col = "gyr_z"
-dataset = mark_outliers_chauvenet(df, col=col)
-dataset[dataset["gyr_z_outlier"]]
-dataset.loc[dataset["gyr_z_outlier"], "gyr_z"] = np.nan
 
-# Create a loop
-outliers_removed_df = df.copy()
-for col in outlier_columns:
-    for label in df["label"].unique():
-        dataset = mark_outliers_chauvenet(df[df["label"] == label], col)
+def remove_outliers_nan(df, outlier_columns):
+    outliers_removed_df = df.copy()
+    for col in outlier_columns:
+        for label in df["label"].unique():
+            dataset = mark_outliers_chauvenet(df[df["label"] == label], col)
 
-        # Replace values marked as outliers with NaN
-        dataset.loc[dataset[col + "_outlier"], col] = np.nan
+            # Replace values marked as outliers with NaN
+            dataset.loc[dataset[col + "_outlier"], col] = np.nan
 
-        # Update the column in the original dataframe
-        outliers_removed_df.loc[(outliers_removed_df["label"] == label), col] = dataset[
-            col
-        ]
+            # Update the column in the original dataframe
+            outliers_removed_df.loc[(outliers_removed_df["label"] == label), col] = (
+                dataset[col]
+            )
 
-        n_outliers = len(dataset) - len(dataset[col].dropna())
-        print(f"Removed {n_outliers} from {col} for {label}")
+            n_outliers = len(dataset) - len(dataset[col].dropna())
+            print(f"Removed {n_outliers} from {col} for {label}")
 
-outliers_removed_df.info()
-
-# --------------------------------------------------------------
-# Export new dataframe (will deal with missing values later)
-# Need to test each outlier removal method and compare results
-# --------------------------------------------------------------
-
-outliers_removed_df.to_pickle(
-    "../../data/interim/02_data_outliers_removed_chauvenets.pkl"
-)
+    return outliers_removed_df
