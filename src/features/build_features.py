@@ -107,7 +107,6 @@ for s in df_temporal["set"].unique():
     df_temporal_list.append(subset)
 
 df_temporal = pd.concat(df_temporal_list)
-df_temporal.info()  # shows rolling averages have only 8,645 non-null values
 
 
 # --------------------------------------------------------------
@@ -120,22 +119,6 @@ FreqAbs = FourierTransformation()
 sampling_rate = int(1000 / 200)  # 1 second
 window_size = int(2800 / 200)  # 2.8 seconds
 
-df_freq = FreqAbs.abstract_frequency(df_freq, ["acc_y"], window_size, sampling_rate)
-df_freq.columns  # Check to see if the right number of columns have been added
-
-# Visualize the results
-subset = df_freq[df_freq["set"] == 15]
-subset[["acc_y"]].plot()
-subset[
-    [
-        "acc_y_max_freq",
-        "acc_y_freq_weighted",
-        "acc_y_pse",
-        "acc_y_freq_1.429_Hz_ws_14",
-        "acc_y_freq_2.5_Hz_ws_14",
-    ]
-].plot()
-
 df_freq_list = []
 for s in df_freq["set"].unique():
     print(f"Applying Fourier transofrmations to set {s}")
@@ -146,7 +129,6 @@ for s in df_freq["set"].unique():
     df_freq_list.append(subset)
 
 df_freq = pd.concat(df_freq_list).set_index("epoch (ms)", drop=True)
-df_freq.info()
 
 
 # --------------------------------------------------------------
@@ -154,7 +136,7 @@ df_freq.info()
 # --------------------------------------------------------------
 
 df_freq = df_freq.dropna()  # drop missing values
-df_freq.iloc[::2]  # reduce size of dataset by half to prevent overfitting
+df_freq = df_freq.iloc[::2]  # reduce size of dataset by half to prevent overfitting
 
 
 # --------------------------------------------------------------
@@ -164,49 +146,13 @@ df_freq.iloc[::2]  # reduce size of dataset by half to prevent overfitting
 df_cluster = df_freq.copy()
 
 cluster_columns = ["acc_x", "acc_y", "acc_z"]
-k_values = range(2, 10)
-inertias = []
 
-for k in k_values:
-    subset = df_cluster[cluster_columns]
-    kmeans = KMeans(n_clusters=k, n_init=20, random_state=0)
-    cluster_labels = kmeans.fit_predict(subset)
-    inertias.append(kmeans.inertia_)
-
-plt.figure(figsize=(10, 10))
-plt.plot(k_values, inertias)
-plt.xlabel("K")
-plt.ylabel("Sum of squared distances")
-plt.show()  # plot shows elbow at cluster 5
 
 # Set cluster at 5 and add new column
 kmeans = KMeans(n_clusters=5, n_init=20, random_state=0)
 subset = df_cluster[cluster_columns]
 df_cluster["cluster"] = kmeans.fit_predict(subset)
 
-# Visualize the clusters in 3D
-fig = plt.figure(figsize=(15, 15))
-ax = fig.add_subplot(projection="3d")
-for c in df_cluster["cluster"].unique():
-    subset = df_cluster[df_cluster["cluster"] == c]
-    ax.scatter(subset["acc_x"], subset["acc_y"], subset["acc_z"], label=f"Cluster {c}")
-ax.set_xlabel("X-axis")
-ax.set_ylabel("Y-axis")
-ax.set_zlabel("Z-axis")
-plt.legend()
-plt.show()
-
-# Redo above visualization except cluster by labels
-fig = plt.figure(figsize=(15, 15))
-ax = fig.add_subplot(projection="3d")
-for l in df_cluster["label"].unique():
-    subset = df_cluster[df_cluster["label"] == l]
-    ax.scatter(subset["acc_x"], subset["acc_y"], subset["acc_z"], label=l)
-ax.set_xlabel("X-axis")
-ax.set_ylabel("Y-axis")
-ax.set_zlabel("Z-axis")
-plt.legend()
-plt.show()
 
 # --------------------------------------------------------------
 # Export dataset
