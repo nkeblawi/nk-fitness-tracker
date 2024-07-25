@@ -67,12 +67,15 @@ df_lowpass = LowPass.low_pass_filter(df_lowpass, "acc_y", fs, cutoff, order=5)
 df_pca = df_lowpass.copy()
 PCA = PrincipalComponentAnalysis()
 
-pc_values = PCA.determine_pc_explained_variance(df_pca, predictor_columns)
-plt.figure(figsize=(10, 10))
-plt.bar(range(1, len(predictor_columns) + 1), pc_values)
-plt.xlabel("Principal Component Number")
-plt.ylabel("Explained Variance")
-plt.show()
+
+# pc_values = PCA.determine_pc_explained_variance(df_pca, predictor_columns)
+def plot_pc_explained_variance(pc_values, predictor_columns):
+    plt.figure(figsize=(10, 10))
+    plt.bar(range(1, len(predictor_columns) + 1), pc_values)
+    plt.xlabel("Principal Component Number")
+    plt.ylabel("Explained Variance")
+    plt.show()
+
 
 # Add only the first 3 principal components to the dataframe
 df_pca = PCA.apply_pca(df_pca, predictor_columns, 3)

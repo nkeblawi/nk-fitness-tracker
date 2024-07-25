@@ -170,3 +170,16 @@ def create_combined_plots(df, labels, participants, filepath):
                 ax[1].set_xlabel("samples")
                 plt.savefig(f"{filepath}/{label.title()}-({participant}).png")
                 plt.close()
+
+
+# --------------------------------------------------------------
+# Create an elbow plot of principal components with explained variances
+# --------------------------------------------------------------
+
+
+def plot_pc_explained_variance(pc_values, predictor_columns):
+    plt.figure(figsize=(10, 10))
+    plt.bar(range(1, len(predictor_columns) + 1), pc_values)
+    plt.xlabel("Principal Component Number")
+    plt.ylabel("Explained Variance")
+    plt.show()
