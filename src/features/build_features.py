@@ -67,22 +67,8 @@ df_lowpass = LowPass.low_pass_filter(df_lowpass, "acc_y", fs, cutoff, order=5)
 df_pca = df_lowpass.copy()
 PCA = PrincipalComponentAnalysis()
 
-
-# pc_values = PCA.determine_pc_explained_variance(df_pca, predictor_columns)
-def plot_pc_explained_variance(pc_values, predictor_columns):
-    plt.figure(figsize=(10, 10))
-    plt.bar(range(1, len(predictor_columns) + 1), pc_values)
-    plt.xlabel("Principal Component Number")
-    plt.ylabel("Explained Variance")
-    plt.show()
-
-
 # Add only the first 3 principal components to the dataframe
 df_pca = PCA.apply_pca(df_pca, predictor_columns, 3)
-
-# Plot a subset of the data to see the effects of PCA
-subset = df_pca[df_pca["set"] == 35]
-subset[["pca_1", "pca_2", "pca_3"]].plot()
 
 
 # --------------------------------------------------------------
@@ -97,8 +83,6 @@ gyr_r = df_squared["gyr_x"] ** 2 + df_squared["gyr_y"] ** 2 + df_squared["gyr_z"
 df_squared["acc_r"] = np.sqrt(acc_r)
 df_squared["gyr_r"] = np.sqrt(gyr_r)
 
-subset = df_squared[df_squared["set"] == 14]
-subset[["acc_r", "gyr_r"]].plot(subplots=True)
 
 # --------------------------------------------------------------
 # Temporal abstraction using window_size
@@ -113,10 +97,7 @@ pred_col_list.append("gyr_r")  # run this only once
 
 window_size = int(1000 / 200)  # One second
 
-for col in pred_col_list:
-    df_temporal = NumAbs.abstract_numerical(df_temporal, [col], window_size, "mean")
-    df_temporal = NumAbs.abstract_numerical(df_temporal, [col], window_size, "std")
-
+# Apply the temporal abstraction set by set
 df_temporal_list = []
 for s in df_temporal["set"].unique():
     subset = df_temporal[df_temporal["set"] == s].copy()
@@ -127,9 +108,6 @@ for s in df_temporal["set"].unique():
 
 df_temporal = pd.concat(df_temporal_list)
 df_temporal.info()  # shows rolling averages have only 8,645 non-null values
-
-subset[["acc_y", "acc_y_temp_mean_ws_5", "acc_y_temp_std_ws_5"]].plot()
-subset[["gyr_y", "gyr_y_temp_mean_ws_5", "gyr_y_temp_std_ws_5"]].plot()
 
 
 # --------------------------------------------------------------

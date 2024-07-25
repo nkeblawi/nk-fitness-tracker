@@ -179,7 +179,7 @@ def create_combined_plots(df, labels, participants, filepath):
 
 def plot_pc_explained_variance(pc_values, predictor_columns):
     plt.figure(figsize=(10, 10))
-    plt.bar(range(1, len(predictor_columns) + 1), pc_values)
+    plt.plot(range(1, len(predictor_columns) + 1), pc_values)
     plt.xlabel("Principal Component Number")
     plt.ylabel("Explained Variance")
     plt.show()
