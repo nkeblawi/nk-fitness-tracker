@@ -490,6 +490,8 @@ class ClassificationAlgorithms:
         pred_prob_test_y = xgb.predict_proba(test_X)
         pred_training_y = xgb.predict(train_X)
         pred_test_y = xgb.predict(test_X)
+
+        # Convert predictions to DataFrame
         frame_prob_training_y = pd.DataFrame(pred_prob_training_y, columns=xgb.classes_)
         frame_prob_test_y = pd.DataFrame(pred_prob_test_y, columns=xgb.classes_)
 

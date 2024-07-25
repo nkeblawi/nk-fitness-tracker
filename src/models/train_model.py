@@ -5,7 +5,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.preprocessing import LabelEncoder
 
 
-from LearningAlgorithms import ClassificationAlgorithms
+from src.models.LearningAlgorithms import ClassificationAlgorithms
 
 # Plot settings
 import matplotlib.pyplot as plt
@@ -14,7 +14,7 @@ import itertools
 
 
 # Read in the processed data file
-df = pd.read_pickle("../../data/interim/03_data_preprocessed.pkl")
+df = pd.read_pickle("data/interim/03_data_preprocessed.pkl")
 
 
 # --------------------------------------------------------------
@@ -28,23 +28,9 @@ X = df_train.drop("label", axis=1)
 y = df_train["label"]
 
 # Split the data into training and test sets using a 75/25 ratio.
-# Set random_state to an integer to get the same split every time.
-# Also set stratify to y to ensure that the label distribution is
-# equal in both training set and test set to minimize bias.
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.25, random_state=42, stratify=y
 )
-
-# Double check that the distribution of the labels is roughly equal
-# in the training and test sets
-fig, ax = plt.subplots(figsize=(10, 5))
-df_train["label"].value_counts().plot(
-    kind="bar", ax=ax, color="lightblue", label="Total"
-)
-y_train.value_counts().plot(kind="bar", ax=ax, color="dodgerblue", label="Train")
-y_test.value_counts().plot(kind="bar", ax=ax, color="royalblue", label="Test")
-plt.legend()
-plt.show()
 
 
 # --------------------------------------------------------------
@@ -52,24 +38,16 @@ plt.show()
 # --------------------------------------------------------------
 
 # Group the feature columns
-basic_features = ["acc_x", "acc_y", "acc_z", "gyr_x", "gyr_y", "gyr_z"]
-square_features = ["acc_r", "gyr_r"]
+orig_features = ["acc_x", "acc_y", "acc_z", "gyr_x", "gyr_y", "gyr_z"]
+scalar_features = ["acc_r", "gyr_r"]
 pca_features = ["pca_1", "pca_2", "pca_3"]
 time_features = [f for f in df_train.columns if "_temp_" in f]
 frequency_features = [f for f in df_train.columns if ("_freq" in f) or ("_pse" in f)]
 cluster_features = ["cluster"]
 
-# Check the number of features in each subset
-print("Basic features: ", len(basic_features))
-print("Square features: ", len(square_features))
-print("PCA features: ", len(pca_features))
-print("Time features: ", len(time_features))
-print("Frequency features: ", len(frequency_features))
-print("Cluster features: ", len(cluster_features))
-
 # Group features into sets
-feature_set_1 = list(set(basic_features))
-feature_set_2 = list(set(feature_set_1 + square_features + pca_features))
+feature_set_1 = list(set(orig_features))
+feature_set_2 = list(set(feature_set_1 + scalar_features + pca_features))
 feature_set_3 = list(set(feature_set_2 + time_features))
 feature_set_4 = list(set(feature_set_3 + frequency_features + cluster_features))
 
@@ -80,11 +58,12 @@ feature_set_4 = list(set(feature_set_3 + frequency_features + cluster_features))
 
 learner = ClassificationAlgorithms()
 
-# This takes a long time to run
 max_features = 10
-selected_features, ordered_features, ordered_scores = learner.forward_selection(
-    max_features, X_train, y_train
-)
+
+# This takes a long time to run
+# selected_features, ordered_features, ordered_scores = learner.forward_selection(
+#     max_features, X_train, y_train
+# )
 
 selected_features = [
     "acc_y_freq_0.0_Hz_ws_14",
@@ -98,13 +77,6 @@ selected_features = [
     "gyr_z_freq_1.786_Hz_ws_14",
     "acc_z_freq_0.357_Hz_ws_14",
 ]
-
-plt.figure(figsize=(10, 5))
-plt.plot(np.arange(1, max_features + 1, 1), ordered_scores)
-plt.xlabel("Number of features")
-plt.ylabel("Accuracy")
-plt.xticks(np.arange(1, max_features + 1, 1))
-plt.show()
 
 # --------------------------------------------------------------
 # Grid search for best hyperparameters and model selection
@@ -205,6 +177,7 @@ for i, f in zip(range(len(possible_feature_sets)), feature_names):
     # First encode the labels in the train_y table
     le = LabelEncoder()
     y_encoded = le.fit_transform(y_train)
+
     (
         class_train_y,
         class_test_y,
@@ -235,26 +208,6 @@ for i, f in zip(range(len(possible_feature_sets)), feature_names):
     )
     score_df = pd.concat([score_df, new_scores])
 
-
-# --------------------------------------------------------------
-# Create a grouped bar plot to compare the results
-# --------------------------------------------------------------
-
-score_df.sort_values(by="accuracy", ascending=False)
-
-plt.figure(figsize=(10, 10))
-sns.barplot(x="model", y="accuracy", hue="feature_set", data=score_df)
-plt.xlabel("Model")
-plt.ylabel("Accuracy")
-plt.ylim(0.7, 1)
-plt.legend(loc="lower right")
-plt.show()
-
-# Plot shows that the decision tree model performs best with the selected features
-# Test the DT model using the test set with the selected features to see how well
-# it generalizes to unfamiliar data
-
-### Update - XGBoost model performed very well with selected features
 
 # --------------------------------------------------------------
 # Select best model and evaluate results
