@@ -35,9 +35,9 @@ class LowPassFilter:
 
         b, a = butter(order, cut, btype="low", output="ba", analog=False)
         if phase_shift:
-            data_table[col + "_lowpass"] = filtfilt(b, a, data_table[col])
+            data_table.loc[:, col + "_lowpass"] = filtfilt(b, a, data_table[col])
         else:
-            data_table[col + "_lowpass"] = lfilter(b, a, data_table[col])
+            data_table.loc[:, col + "_lowpass"] = lfilter(b, a, data_table[col])
         return data_table
 
 
