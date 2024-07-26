@@ -3,14 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.preprocessing import LabelEncoder
-
-
 from src.models.LearningAlgorithms import ClassificationAlgorithms
-
-# Plot settings
-import matplotlib.pyplot as plt
-import seaborn as sns
-import itertools
 
 
 # Read in the processed data file
@@ -98,116 +91,127 @@ feature_names = [
     "Selected Features",
 ]
 
-iterations = 1
-score_df = pd.DataFrame()
 
-for i, f in zip(range(len(possible_feature_sets)), feature_names):
+# Function that runs the grid search
+def run_grid_search(X_train, X_test, possible_feature_sets, feature_names, iterations):
+    scoring_data = pd.DataFrame()
 
-    print("Feature set:", str(i + 1))
-    selected_train_X = X_train[possible_feature_sets[i]]
-    selected_test_X = X_test[possible_feature_sets[i]]
+    # Start of for loop
+    for i, f in zip(range(len(possible_feature_sets)), feature_names):
 
-    # First run non deterministic classifiers to average their score.
-    performance_test_nn = 0
-    performance_test_rf = 0
+        print("Feature set:", str(i + 1))
+        selected_train_X = X_train[possible_feature_sets[i]]
+        selected_test_X = X_test[possible_feature_sets[i]]
 
-    for it in range(0, iterations):
-        print("\tTraining neural network,", it)
+        # First run non deterministic classifiers to average their score.
+        performance_test_nn = 0
+        performance_test_rf = 0
+
+        for it in range(0, iterations):
+            print("\tTraining neural network,", it)
+            (
+                class_train_y,
+                class_test_y,
+                class_train_prob_y,
+                class_test_prob_y,
+            ) = learner.feedforward_neural_network(
+                selected_train_X,
+                y_train,
+                selected_test_X,
+                gridsearch=False,
+            )
+            performance_test_nn += accuracy_score(y_test, class_test_y)
+
+            print("\tTraining random forest,", it)
+            (
+                class_train_y,
+                class_test_y,
+                class_train_prob_y,
+                class_test_prob_y,
+            ) = learner.random_forest(
+                selected_train_X, y_train, selected_test_X, gridsearch=True
+            )
+            performance_test_rf += accuracy_score(y_test, class_test_y)
+
+        performance_test_nn = performance_test_nn / iterations
+        performance_test_rf = performance_test_rf / iterations
+
+        # And we run our deterministic classifiers:
+        print("\tTraining KNN")
         (
             class_train_y,
             class_test_y,
             class_train_prob_y,
             class_test_prob_y,
-        ) = learner.feedforward_neural_network(
-            selected_train_X,
-            y_train,
-            selected_test_X,
-            gridsearch=False,
-        )
-        performance_test_nn += accuracy_score(y_test, class_test_y)
-
-        print("\tTraining random forest,", it)
-        (
-            class_train_y,
-            class_test_y,
-            class_train_prob_y,
-            class_test_prob_y,
-        ) = learner.random_forest(
+        ) = learner.k_nearest_neighbor(
             selected_train_X, y_train, selected_test_X, gridsearch=True
         )
-        performance_test_rf += accuracy_score(y_test, class_test_y)
+        performance_test_knn = accuracy_score(y_test, class_test_y)
 
-    performance_test_nn = performance_test_nn / iterations
-    performance_test_rf = performance_test_rf / iterations
+        print("\tTraining decision tree")
+        (
+            class_train_y,
+            class_test_y,
+            class_train_prob_y,
+            class_test_prob_y,
+        ) = learner.decision_tree(
+            selected_train_X, y_train, selected_test_X, gridsearch=True
+        )
+        performance_test_dt = accuracy_score(y_test, class_test_y)
 
-    # And we run our deterministic classifiers:
-    print("\tTraining KNN")
-    (
-        class_train_y,
-        class_test_y,
-        class_train_prob_y,
-        class_test_prob_y,
-    ) = learner.k_nearest_neighbor(
-        selected_train_X, y_train, selected_test_X, gridsearch=True
-    )
-    performance_test_knn = accuracy_score(y_test, class_test_y)
+        print("\tTraining naive bayes")
+        (
+            class_train_y,
+            class_test_y,
+            class_train_prob_y,
+            class_test_prob_y,
+        ) = learner.naive_bayes(selected_train_X, y_train, selected_test_X)
 
-    print("\tTraining decision tree")
-    (
-        class_train_y,
-        class_test_y,
-        class_train_prob_y,
-        class_test_prob_y,
-    ) = learner.decision_tree(
-        selected_train_X, y_train, selected_test_X, gridsearch=True
-    )
-    performance_test_dt = accuracy_score(y_test, class_test_y)
+        performance_test_nb = accuracy_score(y_test, class_test_y)
 
-    print("\tTraining naive bayes")
-    (
-        class_train_y,
-        class_test_y,
-        class_train_prob_y,
-        class_test_prob_y,
-    ) = learner.naive_bayes(selected_train_X, y_train, selected_test_X)
+        print("\tTraining XGBoost")
+        # First encode the labels in the train_y table
+        le = LabelEncoder()
+        y_encoded = le.fit_transform(y_train)
 
-    performance_test_nb = accuracy_score(y_test, class_test_y)
+        (
+            class_train_y,
+            class_test_y,
+            class_train_prob_y,
+            class_test_prob_y,
+        ) = learner.xgboost_classifier(
+            selected_train_X, y_encoded, selected_test_X
+        )  # add gridsearch later
 
-    print("\tTraining XGBoost")
-    # First encode the labels in the train_y table
-    le = LabelEncoder()
-    y_encoded = le.fit_transform(y_train)
+        class_test_y = le.inverse_transform(class_test_y)
+        performance_test_xgb = accuracy_score(y_test, class_test_y)
 
-    (
-        class_train_y,
-        class_test_y,
-        class_train_prob_y,
-        class_test_prob_y,
-    ) = learner.xgboost_classifier(
-        selected_train_X, y_encoded, selected_test_X
-    )  # add gridsearch later
+        # Save results to dataframe
+        models = ["NN", "RF", "KNN", "DT", "NB", "XGB"]
+        new_scores = pd.DataFrame(
+            {
+                "model": models,
+                "feature_set": f,
+                "accuracy": [
+                    performance_test_nn,
+                    performance_test_rf,
+                    performance_test_knn,
+                    performance_test_dt,
+                    performance_test_nb,
+                    performance_test_xgb,
+                ],
+            }
+        )
+        scoring_data = pd.concat([scoring_data, new_scores])
 
-    class_test_y = le.inverse_transform(class_test_y)
-    performance_test_xgb = accuracy_score(y_test, class_test_y)
+        return scoring_data
 
-    # Save results to dataframe
-    models = ["NN", "RF", "KNN", "DT", "NB", "XGB"]
-    new_scores = pd.DataFrame(
-        {
-            "model": models,
-            "feature_set": f,
-            "accuracy": [
-                performance_test_nn,
-                performance_test_rf,
-                performance_test_knn,
-                performance_test_dt,
-                performance_test_nb,
-                performance_test_xgb,
-            ],
-        }
-    )
-    score_df = pd.concat([score_df, new_scores])
 
+# Calls the grid search function
+iterations = 1
+score_df = run_grid_search(
+    X_train, X_test, possible_feature_sets, feature_names, iterations
+)
 
 # --------------------------------------------------------------
 # Select best model and evaluate results
@@ -228,29 +232,6 @@ accuracy = accuracy_score(y_test, class_test_y)
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
 
-# create confusion matrix for cm
-fig = plt.figure(figsize=(10, 10))
-plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-plt.title("Confusion matrix")
-plt.colorbar()
-tick_marks = np.arange(len(classes))
-plt.xticks(tick_marks, classes, rotation=45)
-plt.yticks(tick_marks, classes)
-
-thresh = cm.max() / 2.0
-for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-    plt.text(
-        j,
-        i,
-        format(cm[i, j]),
-        horizontalalignment="center",
-        color="white" if cm[i, j] > thresh else "black",
-    )
-plt.ylabel("True label")
-plt.xlabel("Predicted label")
-plt.grid(False)
-plt.savefig(f"../../reports/figures/confusion-matrix_DT-model_initial-test.png")
-plt.show()
 
 # CM plot shows that model is nearly perfect except it misclassified
 # an overhead press as a bench press in one instance
@@ -272,14 +253,15 @@ y_test = participant_df[participant_df["participant"] == "A"]["label"]
 X_train = X_train.drop(["participant"], axis=1)
 X_test = X_test.drop(["participant"], axis=1)
 
-fig, ax = plt.subplots(figsize=(10, 5))
-df_train["label"].value_counts().plot(
-    kind="bar", ax=ax, color="lightblue", label="Total"
-)
-y_train.value_counts().plot(kind="bar", ax=ax, color="dodgerblue", label="Train")
-y_test.value_counts().plot(kind="bar", ax=ax, color="royalblue", label="Test")
-plt.legend()
-plt.show()
+# # Call the plot_stratification_on_labels() function
+# fig, ax = plt.subplots(figsize=(10, 5))
+# df_train["label"].value_counts().plot(
+#     kind="bar", ax=ax, color="lightblue", label="Total"
+# )
+# y_train.value_counts().plot(kind="bar", ax=ax, color="dodgerblue", label="Train")
+# y_test.value_counts().plot(kind="bar", ax=ax, color="royalblue", label="Test")
+# plt.legend()
+# plt.show()
 
 
 # --------------------------------------------------------------
@@ -299,32 +281,8 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
+# call the plot_confusion_matrix() function
 
-# create confusion matrix for cm
-fig = plt.figure(figsize=(10, 10))
-plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-plt.title("Confusion matrix")
-plt.colorbar()
-tick_marks = np.arange(len(classes))
-plt.xticks(tick_marks, classes, rotation=45)
-plt.yticks(tick_marks, classes)
-
-thresh = cm.max() / 2.0
-for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-    plt.text(
-        j,
-        i,
-        format(cm[i, j]),
-        horizontalalignment="center",
-        color="white" if cm[i, j] > thresh else "black",
-    )
-plt.ylabel("True label")
-plt.xlabel("Predicted label")
-plt.grid(False)
-plt.savefig(
-    f"../../reports/figures/confusion-matrix_DT-model_validation_selected-features.png"
-)
-plt.show()
 
 # Get accuracy score (this time it is lower at 96.6%,
 # so it performs worse particularly misclassifying deadlifts as rows
@@ -351,32 +309,8 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
+# call the plot_confusion_matrix() function
 
-# create confusion matrix for cm
-fig = plt.figure(figsize=(10, 10))
-plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-plt.title("Confusion matrix")
-plt.colorbar()
-tick_marks = np.arange(len(classes))
-plt.xticks(tick_marks, classes, rotation=45)
-plt.yticks(tick_marks, classes)
-
-thresh = cm.max() / 2.0
-for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-    plt.text(
-        j,
-        i,
-        format(cm[i, j]),
-        horizontalalignment="center",
-        color="white" if cm[i, j] > thresh else "black",
-    )
-plt.ylabel("True label")
-plt.xlabel("Predicted label")
-plt.grid(False)
-plt.savefig(
-    f"../../reports/figures/confusion-matrix_RF-model_validation_feature-set-4.png"
-)
-plt.show()
 
 ### ------------------------------------------------------------------- ###
 ### CONCLUSION: Random forest model with feature set 4 performs better
@@ -397,32 +331,8 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
+# call the plot_confusion_matrix() function
 
-# create confusion matrix for cm
-fig = plt.figure(figsize=(10, 10))
-plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-plt.title("Confusion matrix")
-plt.colorbar()
-tick_marks = np.arange(len(classes))
-plt.xticks(tick_marks, classes, rotation=45)
-plt.yticks(tick_marks, classes)
-
-thresh = cm.max() / 2.0
-for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-    plt.text(
-        j,
-        i,
-        format(cm[i, j]),
-        horizontalalignment="center",
-        color="white" if cm[i, j] > thresh else "black",
-    )
-plt.ylabel("True label")
-plt.xlabel("Predicted label")
-plt.grid(False)
-plt.savefig(
-    f"../../reports/figures/confusion-matrix_NN-model_validation_feature-set-4.png"
-)
-plt.show()
 
 ### ------------------------------------------------------------------- ###
 ### CONCLUSION: NN  model with feature set 4 performs slightly better than
@@ -443,32 +353,8 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
+# call the plot_confusion_matrix() function
 
-# create confusion matrix for cm
-fig = plt.figure(figsize=(10, 10))
-plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-plt.title("Confusion matrix")
-plt.colorbar()
-tick_marks = np.arange(len(classes))
-plt.xticks(tick_marks, classes, rotation=45)
-plt.yticks(tick_marks, classes)
-
-thresh = cm.max() / 2.0
-for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-    plt.text(
-        j,
-        i,
-        format(cm[i, j]),
-        horizontalalignment="center",
-        color="white" if cm[i, j] > thresh else "black",
-    )
-plt.ylabel("True label")
-plt.xlabel("Predicted label")
-plt.grid(False)
-plt.savefig(
-    f"../../reports/figures/confusion-matrix_NN-model_validation_selected-features.png"
-)
-plt.show()
 
 # ConvergenceWarning: Stochastic Optimizer: Maximum iterations (1000) reached and the optimization hasn't converged yet.
 ### ------------------------------------------------------------------- ###
@@ -494,29 +380,4 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = le.inverse_transform(class_test_prob_y.columns)
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
-
-# create confusion matrix for cm
-fig = plt.figure(figsize=(10, 10))
-plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-plt.title("Confusion matrix")
-plt.colorbar()
-tick_marks = np.arange(len(classes))
-plt.xticks(tick_marks, classes, rotation=45)
-plt.yticks(tick_marks, classes)
-
-thresh = cm.max() / 2.0
-for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-    plt.text(
-        j,
-        i,
-        format(cm[i, j]),
-        horizontalalignment="center",
-        color="white" if cm[i, j] > thresh else "black",
-    )
-plt.ylabel("True label")
-plt.xlabel("Predicted label")
-plt.grid(False)
-plt.savefig(
-    f"../../reports/figures/confusion-matrix_XGB-model_validation_selected-features.png"
-)
-plt.show()
+# call the plot_confusion_matrix() function
