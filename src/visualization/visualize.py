@@ -371,3 +371,20 @@ def plot_confusion_matrix(
     plt.xlabel("Predicted label")
     plt.grid(False)
     plt.show()
+
+
+# --------------------------------------------------------------
+# Create a plot that shows the peaks in a time series
+# --------------------------------------------------------------
+
+
+def plot_peaks(dataset, column, peaks):
+    fig, ax = plt.subplots()
+    plt.plot(dataset[f"{column}_lowpass"])
+    plt.plot(peaks[f"{column}_lowpass"], "o", color="red")
+    ax.set_xlabel("Time")
+    ax.set_ylabel(f"{column}_lowpass")
+    exercise = dataset["label"].iloc[0].title()
+    category = dataset["category"].iloc[0].title()
+    plt.title(f"{exercise} - {category}: {len(peaks)} Reps")
+    plt.show()

@@ -1,18 +1,11 @@
 import numpy as np
 import pandas as pd
-from src.features.DataTransformation import LowPassFilter
 from scipy.signal import argrelextrema
 from sklearn.metrics import mean_absolute_error
+from src.features.DataTransformation import LowPassFilter
+from src.visualization.visualize import plot_peaks
 
 pd.options.mode.chained_assignment = None
-
-# Plot settings
-import matplotlib.pyplot as plt
-
-plt.style.use("fivethirtyeight")
-plt.rcParams["figure.figsize"] = (20, 5)
-plt.rcParams["figure.dpi"] = 100
-plt.rcParams["lines.linewidth"] = 2
 
 
 # --------------------------------------------------------------
@@ -63,10 +56,10 @@ column = "acc_r"
 set_type = ohp_set
 cutoff = 0.5
 
-# Test visualization to see how many reps we should expect to see
+# # Test visualization to see how many reps we should expect to see
 set_type[column].plot()
 
-# Now let's see if the LowPass can identify those reps
+# # Now let's see if the LowPass can identify those reps
 LowPass.low_pass_filter(
     set_type, col=column, sampling_frequency=fs, cutoff_frequency=cutoff, order=5
 )[column + "_lowpass"].plot()
@@ -77,7 +70,7 @@ LowPass.low_pass_filter(
 # --------------------------------------------------------------
 
 
-def count_reps(dataset, cutoff=0.4, order=5, col="acc_r"):
+def count_reps(dataset, cutoff=0.4, order=5, col="acc_z"):
     data = LowPass.low_pass_filter(
         dataset,
         col=col,
@@ -85,19 +78,10 @@ def count_reps(dataset, cutoff=0.4, order=5, col="acc_r"):
         cutoff_frequency=cutoff,
         order=order,
     )
-    indices = argrelextrema(data[column + "_lowpass"].values, np.greater)
+    indices = argrelextrema(data[col + "_lowpass"].values, np.greater)
     peaks = data.iloc[indices]
 
-    # fig, ax = plt.subplots()
-    # plt.plot(dataset[f"{column}_lowpass"])
-    # plt.plot(peaks[f"{column}_lowpass"], "o", color="red")
-    # ax.set_xlabel("Time")
-    # ax.set_ylabel(f"{column}_lowpass")
-    # exercise = dataset["label"].iloc[0].title()
-    # category = dataset["category"].iloc[0].title()
-    # plt.title(f"{exercise} - {category}: {len(peaks)} Reps")
-    # plt.show()
-
+    plot_peaks(dataset, col, peaks)
     return len(peaks)
 
 
