@@ -231,12 +231,8 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
+# Call the plot_confusion_matrix() function to plot results
 
-
-# CM plot shows that model is nearly perfect except it misclassified
-# an overhead press as a bench press in one instance
-
-# Accuracy score is too good - possible target leakage???
 
 # --------------------------------------------------------------
 # Select train and test data based on participant
@@ -252,16 +248,6 @@ y_test = participant_df[participant_df["participant"] == "A"]["label"]
 
 X_train = X_train.drop(["participant"], axis=1)
 X_test = X_test.drop(["participant"], axis=1)
-
-# # Call the plot_stratification_on_labels() function
-# fig, ax = plt.subplots(figsize=(10, 5))
-# df_train["label"].value_counts().plot(
-#     kind="bar", ax=ax, color="lightblue", label="Total"
-# )
-# y_train.value_counts().plot(kind="bar", ax=ax, color="dodgerblue", label="Train")
-# y_test.value_counts().plot(kind="bar", ax=ax, color="royalblue", label="Test")
-# plt.legend()
-# plt.show()
 
 
 # --------------------------------------------------------------
@@ -281,19 +267,11 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
-# call the plot_confusion_matrix() function
+# Call the plot_confusion_matrix() function to plot results
 
-
-# Get accuracy score (this time it is lower at 96.6%,
-# so it performs worse particularly misclassifying deadlifts as rows
-
-### ------------------------------------------------------------------- ###
-### CONCLUSION: Decision tree model performs poorly with rows/deadlifts ###
-### NEXT ACTION: Try random forest or neural network model and compare  ###
-### ------------------------------------------------------------------- ###
 
 # --------------------------------------------------------------
-# Try another model with the selected features
+# Try random forest or neural network model and compare
 # --------------------------------------------------------------
 
 (
@@ -309,14 +287,12 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
-# call the plot_confusion_matrix() function
+# Call the plot_confusion_matrix() function to plot results
 
 
-### ------------------------------------------------------------------- ###
-### CONCLUSION: Random forest model with feature set 4 performs better
-### but still some error with predicting overhead press vs. bench press
-### labels. Next step is to try a neural network model and compare results
-### ------------------------------------------------------------------- ###
+# --------------------------------------------------------------
+# Try a neural networks with feature set 4 and compare results
+# --------------------------------------------------------------
 
 (
     class_train_y,
@@ -331,14 +307,12 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
-# call the plot_confusion_matrix() function
+# Call the plot_confusion_matrix() function to plot results
 
 
-### ------------------------------------------------------------------- ###
-### CONCLUSION: NN  model with feature set 4 performs slightly better than
-### random forest with less error with predicting OHP vs. bench
-### Next, try NN with selected features to see if it performs even better.
-### ------------------------------------------------------------------- ###
+# --------------------------------------------------------------
+# Try a neural networks with selected features and compare results
+# --------------------------------------------------------------
 
 (
     class_train_y,
@@ -353,15 +327,12 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = class_test_prob_y.columns
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
-# call the plot_confusion_matrix() function
+# Call the plot_confusion_matrix() function to plot results
 
 
-# ConvergenceWarning: Stochastic Optimizer: Maximum iterations (1000) reached and the optimization hasn't converged yet.
-### ------------------------------------------------------------------- ###
-### CONCLUSION: NN  model with selected features performed about the same as
-### with the feature set 4. It still has some error with OHP vs. bench pred
-### Next, try XGBoost with selected features to see if it performs even better.
-### ------------------------------------------------------------------- ###
+# --------------------------------------------------------------
+# Try a XGBoost with selected features and compare results
+# --------------------------------------------------------------
 
 le = LabelEncoder()
 y_encoded = le.fit_transform(y_train)
@@ -380,4 +351,4 @@ accuracy = accuracy_score(y_test, class_test_y)
 
 classes = le.inverse_transform(class_test_prob_y.columns)
 cm = confusion_matrix(y_test, class_test_y, labels=classes)
-# call the plot_confusion_matrix() function
+# Call the plot_confusion_matrix() function to plot results

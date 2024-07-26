@@ -350,7 +350,7 @@ def plot_confusion_matrix(
     cm,
     classes,
 ):
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(8, 8))
     plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
     plt.title("Confusion matrix")
     plt.colorbar()
