@@ -58,6 +58,7 @@ max_features = 10
 #     max_features, X_train, y_train
 # )
 
+# Features selected from last run
 selected_features = [
     "acc_y_freq_0.0_Hz_ws_14",
     "gyr_r_freq_0.0_Hz_ws_14",
@@ -94,9 +95,7 @@ feature_names = [
 
 # Function that runs the grid search
 def run_grid_search(X_train, X_test, possible_feature_sets, feature_names, iterations):
-    scoring_data = pd.DataFrame()
-
-    # Start of for loop
+    score_df = pd.DataFrame()
     for i, f in zip(range(len(possible_feature_sets)), feature_names):
 
         print("Feature set:", str(i + 1))
@@ -173,7 +172,6 @@ def run_grid_search(X_train, X_test, possible_feature_sets, feature_names, itera
         # First encode the labels in the train_y table
         le = LabelEncoder()
         y_encoded = le.fit_transform(y_train)
-
         (
             class_train_y,
             class_test_y,
@@ -187,6 +185,7 @@ def run_grid_search(X_train, X_test, possible_feature_sets, feature_names, itera
         performance_test_xgb = accuracy_score(y_test, class_test_y)
 
         # Save results to dataframe
+        print("\tSaving results to dataframe")
         models = ["NN", "RF", "KNN", "DT", "NB", "XGB"]
         new_scores = pd.DataFrame(
             {
@@ -202,16 +201,17 @@ def run_grid_search(X_train, X_test, possible_feature_sets, feature_names, itera
                 ],
             }
         )
-        scoring_data = pd.concat([scoring_data, new_scores])
+        score_df = pd.concat([score_df, new_scores])
 
-        return scoring_data
+    return score_df
 
 
-# Calls the grid search function
+# Calls the grid search function - comment out if using notebook
 iterations = 1
 score_df = run_grid_search(
     X_train, X_test, possible_feature_sets, feature_names, iterations
 )
+
 
 # --------------------------------------------------------------
 # Select best model and evaluate results
